@@ -1,6 +1,6 @@
 ## 6D detection on IPD (Industrial Plenoptic Dataset) with SAM-6D
 <p align="center">
-  <img src="Media/ipd-objects.png" width="960px">
+  <img src="media/ipd-objects.png" width="960px">
 </p>
 
 ### 1. Environment Setup
@@ -61,8 +61,8 @@ python run_inference_pem.py  --output_dir ../Data/IPD/sam6d_outputs --input_dir 
 ### 3. Results
 Here is an example detection with ISM segmentations and PEM detections concatenated with the original RGB image:
 <p align="center">
-  <img src="Media/03_vis_ism_img1_obj11.png" width="960px">
+  <img src="media/03_vis_ism_img1_obj11.png" width="960px">
 </p>
 <p align="center">
-  <img src="Media/03_vis_pem_img1_obj11.png" width="960px">
+  <img src="media/03_vis_pem_img1_obj11.png" width="960px">
 </p>
