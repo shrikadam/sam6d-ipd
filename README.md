@@ -4,7 +4,7 @@
 </p>
 
 ### 1. Environment Setup
-Ensure CUDA versions match between GPU Driver, CUDA Toolkit and PyTorch.
+CUDA versions should match between GPU Driver, CUDA Toolkit and PyTorch.
 ```shell
 conda create -n sam6d python=3.10
 conda activate sam6d
@@ -17,12 +17,9 @@ Build Pointnet++ extensions for PEM.
 cd Pose_Estimation_Model/model/pointnet2
 python setup.py install
 ```
-
-### 2. Evaluation on the IPD dataset
-
-#### Your data should follow the structure
+Data should follow the structure:
 ```
-SAM-6D
+SAM-6D-IPD
 |---Data/
 |   |---IPD/
 |       |---models/
@@ -31,16 +28,18 @@ SAM-6D
 |       |---ism_mask_sam6d.json
 |       |---test_targets_bop19.json
 |       |---test/
-|           |--000000/
-|                |--aolp_[cam1, cam2, cam3]/
-|                |--depth_[cam1, cam2, cam3, photoneo]/
-|                |--dolp_[cam1, cam2, cam3]/
-|                |--rgb_[cam1, cam2, cam3, photoneo]/
-|                |--scene_camera_[cam1, cam2, cam3, photoneo].json
-|           |--000001/
-|           |--...
-|           |--0000014/
+|           |---000000/
+|                |---aolp_[cam1, cam2, cam3]/
+|                |---depth_[cam1, cam2, cam3, photoneo]/
+|                |---dolp_[cam1, cam2, cam3]/
+|                |---rgb_[cam1, cam2, cam3, photoneo]/
+|                |---scene_camera_[cam1, cam2, cam3, photoneo].json
+|           |---000001/
+|           |---...
+|           |---0000014/
 ```
+
+### 2. Evaluation on the IPD dataset
 
 #### Run the template render
 ```shell
