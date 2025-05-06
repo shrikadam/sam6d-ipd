@@ -218,7 +218,7 @@ class Instance_Segmentation_Model(pl.LightningModule):
 
         # translate object_selected pointcloud by the selected best pose and camera coordinate
         posed_pc = torch.matmul(pose_R, select_pc.permute(0, 2, 1)).permute(0, 2, 1)
-        translate = self.Calculate_the_query_translation(proposals, batch["depth"][0], batch["cam_intrinsic"][0], batch['depth_scale'])
+        translate = self.calculate_the_query_translation(proposals, batch["depth"][0], batch["cam_intrinsic"][0], batch['depth_scale'])
         posed_pc = posed_pc + translate[:, None, :].repeat(1, N_pointcloud, 1)
 
         # project the pointcloud to the image
@@ -231,14 +231,14 @@ class Instance_Segmentation_Model(pl.LightningModule):
 
         return image_vu
 
-    def Calculate_the_query_translation(self, proposal, depth, cam_intrinsic, depth_scale):
+    def calculate_the_query_translation(self, proposal, depth, cam_intrinsic, depth_scale):
         """
         Calculate the translation amount from the origin of the object coordinate system to the camera coordinate system. 
         Cut out the depth using the provided mask and calculate the mean as the translation.
         proposal: N_query x imageH x imageW
         depth: imageH x imageW
         """
-        (N_query, imageH, imageW) = proposal.squeeze_().shape
+        (N_query, imageH, imageW) = proposal.squeeze_(1).shape
         masked_depth = proposal * (depth[None, ...].repeat(N_query, 1, 1))
         translate = depth_image_to_pointcloud_translate_torch(
             masked_depth, depth_scale, cam_intrinsic

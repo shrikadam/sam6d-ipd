@@ -8,19 +8,6 @@ from utils.bbox_utils import xyxy_to_xywh, xywh_to_xyxy, force_binary_mask
 import time
 from PIL import Image
 
-lmo_object_ids = np.array(
-    [
-        1,
-        5,
-        6,
-        8,
-        9,
-        10,
-        11,
-        12,
-    ]
-)  # object ID of occlusionLINEMOD is different
-
 
 def mask_to_rle(binary_mask):
     rle = {"counts": [], "size": list(binary_mask.shape)}
@@ -160,9 +147,7 @@ class Detections:
         results = {
             "scene_id": scene_id,
             "image_id": frame_id,
-            "category_id": self.object_ids + 1
-            if dataset_name != "lmo"
-            else lmo_object_ids[self.object_ids],
+            "category_id": self.object_ids,
             "score": self.scores,
             "bbox": boxes,
             "time": runtime,
@@ -177,7 +162,7 @@ class Detections:
         masks = data["segmentation"]
         boxes = xywh_to_xyxy(np.array(data["bbox"]))
         data = {
-            "object_ids": data["category_id"] - 1,
+            "object_ids": data["category_id"],
             "bbox": boxes,
             "scores": data["score"],
             "masks": masks,

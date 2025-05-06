@@ -1,3 +1,5 @@
 __pycache__
 Data
 checkpoints
+build
+*.egg-info
