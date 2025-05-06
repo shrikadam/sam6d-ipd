@@ -23,15 +23,15 @@ rule cuda_compile
 
 
 
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/ball_query.o: compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/ball_query.cpp
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/ball_query_gpu.o: cuda_compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/ball_query_gpu.cu
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/bindings.o: compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/bindings.cpp
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/group_points.o: compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/group_points.cpp
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/group_points_gpu.o: cuda_compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/group_points_gpu.cu
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/interpolate.o: compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/interpolate.cpp
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/interpolate_gpu.o: cuda_compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/interpolate_gpu.cu
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/sampling.o: compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/sampling.cpp
-build /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/sampling_gpu.o: cuda_compile /home/shri/Sandbox/SAM-6D/SAM-6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/sampling_gpu.cu
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/ball_query.o: compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/ball_query.cpp
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/ball_query_gpu.o: cuda_compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/ball_query_gpu.cu
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/bindings.o: compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/bindings.cpp
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/group_points.o: compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/group_points.cpp
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/group_points_gpu.o: cuda_compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/group_points_gpu.cu
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/interpolate.o: compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/interpolate.cpp
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/interpolate_gpu.o: cuda_compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/interpolate_gpu.cu
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/sampling.o: compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/sampling.cpp
+build /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/build/temp.linux-x86_64-cpython-310/_ext_src/src/sampling_gpu.o: cuda_compile /home/shri/Code/SAM6D/Pose_Estimation_Model/model/pointnet2/_ext_src/src/sampling_gpu.cu
 
 
 

@@ -1,33 +1,81 @@
 import os
+import gc
+import numpy as np
+from tqdm import tqdm
+import torch
+from PIL import Image
+import logging
+from hydra import initialize, compose
+# set level logging
+logging.basicConfig(level=logging.INFO)
+import logging
+import trimesh
+import numpy as np
+from hydra.utils import instantiate
 import argparse
 import glob
-import logging
-logging.basicConfig(level=logging.INFO) # set level logging
-from rich.progress import Progress
-import json
-
-import numpy as np
-import torch
+from omegaconf import DictConfig, OmegaConf
+from torchvision.utils import save_image
 import torchvision.transforms as T
-from PIL import Image
 import cv2
-import trimesh
-from hydra import initialize, compose
-from hydra.utils import instantiate
-from omegaconf import OmegaConf
+# import imageio
 import imageio.v2 as imageio
 import distinctipy
 from skimage.feature import canny
 from skimage.morphology import binary_dilation
 from segment_anything.utils.amg import rle_to_mask
 
-from Instance_Segmentation_Model.utils.poses.pose_utils import get_obj_poses_from_template_level, load_index_level_in_level2
-from Instance_Segmentation_Model.utils.bbox_utils import CropResizePad
-from Instance_Segmentation_Model.model.utils import Detections, convert_npz_to_json
-from Instance_Segmentation_Model.utils.inout import load_json, save_json_bop23
+from utils.poses.pose_utils import get_obj_poses_from_template_level, load_index_level_in_level2
+from utils.bbox_utils import CropResizePad
+from model.utils import Detections, convert_npz_to_json
+from model.loss import Similarity
+from utils.inout import load_json, save_json_bop23
+from rich.progress import Progress
+import json
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+gc.collect()
+torch.cuda.empty_cache()
 
 def visualize(rgb, detections, save_path="tmp.png"):
+    img = rgb.copy()
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    colors = distinctipy.get_colors(len(detections))
+    alpha = 0.33
+
+    best_score = 0.
+    for mask_idx, det in enumerate(detections):
+        if best_score < det['score']:
+            best_score = det['score']
+            best_det = detections[mask_idx]
+
+    mask = rle_to_mask(best_det["segmentation"])
+    edge = canny(mask)
+    edge = binary_dilation(edge, np.ones((2, 2)))
+    obj_id = best_det["category_id"]
+    temp_id = obj_id - 1
+
+    r = int(255*colors[temp_id][0])
+    g = int(255*colors[temp_id][1])
+    b = int(255*colors[temp_id][2])
+    img[mask, 0] = alpha*r + (1 - alpha)*img[mask, 0]
+    img[mask, 1] = alpha*g + (1 - alpha)*img[mask, 1]
+    img[mask, 2] = alpha*b + (1 - alpha)*img[mask, 2]   
+    img[edge, :] = 255
+    
+    img = Image.fromarray(np.uint8(img))
+    img.save(save_path)
+    prediction = Image.open(save_path)
+    
+    # concat side by side in PIL
+    img = np.array(img)
+    concat = Image.new('RGB', (img.shape[1] + prediction.size[0], img.shape[0]))
+    concat.paste(rgb, (0, 0))
+    concat.paste(prediction, (img.shape[1], 0))
+    return concat
+
+def visualize_all(rgb, detections, save_path="tmp.png"):
     img = rgb.copy()
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
@@ -58,12 +106,14 @@ def visualize(rgb, detections, save_path="tmp.png"):
         concat = Image.new('RGB', (img.shape[1] + prediction.size[0], img.shape[0]))
         concat.paste(rgb, (0, 0))
         concat.paste(prediction, (img.shape[1], 0))
-        concat.save(os.path.join(save_path, f"vis_ism_{det_id}.png"))
+        concat.save(os.path.join(save_path, f"vis_ism.png"))
 
 def batch_input_data(depth_path, cam_path, device):
     batch = {}
     cam_info = load_json(cam_path)
     depth = np.array(imageio.imread(depth_path)).astype(np.int32)
+    # cam_K = np.array(cam_info['cam_K']).reshape((3, 3))
+    # depth_scale = np.array(cam_info['depth_scale'])
 
     cam = cam_info[next(iter(cam_info))]
     cam_K = np.array(cam['cam_K']).reshape((3, 3))
@@ -96,7 +146,6 @@ def run_inference(model, test_targets_path, output_dir, input_dir, template_fold
         image = Image.open(os.path.join(template_dir, 'rgb_'+str(idx)+'.png'))
         mask = Image.open(os.path.join(template_dir, 'mask_'+str(idx)+'.png'))
         boxes.append(mask.getbbox())
-
         image = torch.from_numpy(np.array(image.convert("RGB")) / 255).float()
         mask = torch.from_numpy(np.array(mask.convert("L")) / 255).float()
         image = image * mask[:, :, None]
@@ -105,6 +154,7 @@ def run_inference(model, test_targets_path, output_dir, input_dir, template_fold
         
     templates = torch.stack(templates).permute(0, 3, 1, 2)
     masks = torch.stack(masks).permute(0, 3, 1, 2)
+    boxes = [box for box in boxes if box is not None]
     boxes = torch.tensor(np.array(boxes))
     
     processing_config = OmegaConf.create(
@@ -173,29 +223,31 @@ def run_inference(model, test_targets_path, output_dir, input_dir, template_fold
     detections.save_to_file(0, 0, 0, save_path, "Custom", return_results=False)
     detections = convert_npz_to_json(idx=0, list_npz_paths=[save_path+".npz"])
     save_json_bop23(save_path+".json", detections)
-    visualize(rgb, detections, f"{output_dir}/sam6d_results")
+    # vis_img = visualize(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
+    # vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
+    visualize_all(rgb, detections, f"{output_dir}/sam6d_results")
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--segmentor_model", default='fastsam', help="The segmentor model in ISM")
-    parser.add_argument("--output_dir", default='Data/IPD/outputs', nargs="?", help="Path to root directory of the output")
-    parser.add_argument("--input_dir", default='Data/IPD/val', nargs="?", help="Path to input data")
-    parser.add_argument("--template_dir", default='Data/IPD/templates', nargs="?", help="Path to templates")
-    parser.add_argument("--cad_dir", default='Data/IPD/models', nargs="?", help="Path to CAD(mm)")
-    parser.add_argument("--targets_path", default='Data/IPD/test_targets_bop19.json', nargs="?", help="Path to test/val targets")
+    parser.add_argument("--output_dir", nargs="?", help="Path to root directory of the output")
+    parser.add_argument("--input_dir", nargs="?", help="Path to input data")
+    parser.add_argument("--template_dir", nargs="?", help="Path to templates")
+    parser.add_argument("--cad_dir", nargs="?", help="Path to CAD(mm)")
+    parser.add_argument("--targets_path", default='?', nargs="?", help="Path to test/val targets")
     parser.add_argument("--stability_score_thresh", default=0.97, type=float, help="stability_score_thresh of SAM")
     args = parser.parse_args()
 
-    with initialize(version_base=None, config_path="Instance_Segmentation_Model/configs"):
+    with initialize(version_base=None, config_path="configs"):
         cfg = compose(config_name='run_inference.yaml')
 
     segmentor_model = args.segmentor_model
     if segmentor_model == "sam":
-        with initialize(version_base=None, config_path="Instance_Segmentation_Model/configs/model"):
+        with initialize(version_base=None, config_path="configs/model"):
             cfg.model = compose(config_name='ISM_sam.yaml')
         cfg.model.segmentor_model.stability_score_thresh = args.stability_score_thresh
     elif segmentor_model == "fastsam":
-        with initialize(version_base=None, config_path="Instance_Segmentation_Model/configs/model"):
+        with initialize(version_base=None, config_path="configs/model"):
             cfg.model = compose(config_name='ISM_fastsam.yaml')
     else:
         raise ValueError("The segmentor_model {} is not supported now!".format(segmentor_model))

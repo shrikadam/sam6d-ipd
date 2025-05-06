@@ -1,9 +1,7 @@
-torch==2.6.0+cu124
-torchvision==0.17.0+cu124
-torchaudio==2.6.0+cu124
---extra-index-url https://download.pytorch.org/whl/cu124
-fvcore
-xformers
+git+https://github.com/facebookresearch/fvcore
+git+https://github.com/facebookresearch/xformers.git@v0.0.29.post3
+git+https://github.com/facebookresearch/segment-anything.git
+typeguard
 torchmetrics
 blenderproc
 opencv-python 
@@ -15,12 +13,12 @@ triton
 gdown
 pandas
 imageio
+rich
 pyrender
 pytorch-lightning
 pycocotools 
 distinctipy
-git+https://github.com/facebookresearch/segment-anything.git
-ultralytics
+ultralytics==8.0.135 # FastSAM
 timm
 gorilla-core
 trimesh
