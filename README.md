@@ -17,6 +17,10 @@ Build Pointnet++ extensions for PEM.
 cd Pose_Estimation_Model/model/pointnet2
 python setup.py install
 ```
+Download SAM, FastSAM, Dino V2 and PEM weights.
+```shell
+python download_weights.py
+```
 Data should follow the structure:
 ```
 SAM-6D-IPD
