@@ -55,7 +55,6 @@ def visualize(rgb, pred_rot, pred_trans, model_points, K, save_path):
     concat.paste(prediction, (img.shape[1], 0))
     return concat
 
-
 def _get_template(path, cfg, tem_index=1):
     rgb_path = os.path.join(path, 'rgb_'+str(tem_index)+'.png')
     mask_path = os.path.join(path, 'mask_'+str(tem_index)+'.png')
@@ -87,7 +86,6 @@ def _get_template(path, cfg, tem_index=1):
     rgb_choose = get_resize_rgb_choose(choose, [y1, y2, x1, x2], cfg.img_size)
     return rgb, rgb_choose, xyz
 
-
 def get_templates(path, cfg):
     n_template_view = cfg.n_template_view
     all_tem = []
@@ -103,14 +101,12 @@ def get_templates(path, cfg):
         all_tem_pts.append(torch.FloatTensor(tem_pts).unsqueeze(0).cuda())
     return all_tem, all_tem_pts, all_tem_choose
 
-
 def get_detections(detections, scene_id, image_id, obj_id):
     dets_ = []
     for det in detections:
         if det['scene_id'] == scene_id and det['image_id'] == image_id and det['category_id'] == obj_id:
             dets_.append(det)
     return dets_
-
 
 def get_test_data(input_dir, cad_dir, det_score_thresh, cfg, detections, scene_id, im_id, obj_id):
     rgb_path = os.path.join(input_dir, "rgb_cam1", f"{im_id:06d}.png")
@@ -205,8 +201,8 @@ def get_test_data(input_dir, cad_dir, det_score_thresh, cfg, detections, scene_i
     ninstance = ret_dict['pts'].size(0)
     ret_dict['model'] = torch.FloatTensor(model_points).unsqueeze(0).repeat(ninstance, 1, 1).cuda()
     ret_dict['K'] = torch.FloatTensor(K).unsqueeze(0).repeat(ninstance, 1, 1).cuda()
+    
     return ret_dict, whole_image, whole_pts.reshape(-1, 3), model_points, all_dets
-
 
 def run_inference(model, cfg, output_dir, input_dir, test_targets_path, ism_detection_path, template_dir, cad_dir):
     with open (test_targets_path, "r") as f:    
@@ -221,11 +217,12 @@ def run_inference(model, cfg, output_dir, input_dir, test_targets_path, ism_dete
 
     for im_id in im_idx:
         res = []
-        ism_detection_json = os.path.join(os.path.join(ism_detection_path, scene_str, f"detection_ism_img{im_id}.json"))
+        ism_detection_json = os.path.join(os.path.join(ism_detection_path, scene_str, f"detection_ism.json"))
         with open(ism_detection_json, "r") as f:
             detection_masks = json.load(f)
         det_masks = [item for item in detection_masks if item['scene_id'] == scene_id and item['image_id'] == im_id and item['score'] > det_score_thresh]
-        if len(det_masks) == 0:             
+        if len(det_masks) == 0:  
+            print(f"No Segmentation masks found for scene {scene_id}: image {im_id}!")           
             continue
         det_obj_ids = set([item['category_id'] for item in det_masks])
         for obj_id in det_obj_ids:
@@ -239,6 +236,7 @@ def run_inference(model, cfg, output_dir, input_dir, test_targets_path, ism_dete
                 detection_masks, scene_id, im_id, obj_id
             )
             if input_data is None:
+                print(f"No input data found for scene {scene_id}: image {im_id}!")
                 continue
             ninstance = input_data['pts'].size(0)
             
@@ -284,8 +282,8 @@ def run_inference(model, cfg, output_dir, input_dir, test_targets_path, ism_dete
                     "time": det["time"],
                 })            
 
-        with open(os.path.join(f"{output_dir}", 'detection_pem.json'), "w") as f:
-            json.dump(res, f, indent=2)
+            with open(os.path.join(f"{output_dir}", f'detection_pem_img{im_id}_obj{obj_id}.json'), "w") as f:
+                json.dump(res, f, indent=2)
 
         image_path = os.path.join(input_dir, "rgb_cam1", f"{im_id:06d}.png")
         img = load_im(image_path).astype(np.uint8)
@@ -311,6 +309,23 @@ def run_inference(model, cfg, output_dir, input_dir, test_targets_path, ism_dete
             vis_img = visualize(img, pred_rot, pred_trans, model_points*1000, cam_K, save_path)
             vis_img.save(save_path)
 
+def fuse_pem_json(output_dir):
+    combined_data = []
+    for file_name in os.listdir(output_dir):
+        # Only consider JSON files matching the pattern
+        if file_name.startswith('detection_pem_img') and file_name.endswith('.json'):
+            # Full path to the current JSON file
+            json_file_path = os.path.join(output_dir, file_name)
+            # Read and load the contents of the current JSON file
+            with open(json_file_path, 'r') as json_file:
+                data = json.load(json_file)
+                combined_data.extend(data)
+    output_path = os.path.join(output_dir, "detection_pem.json")
+    # Write fused data
+    with open(output_path, 'w') as f:
+        json.dump(combined_data, f, indent=2)
+
+    print(f"Fused ISM JSON files into {output_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pose Estimation")
@@ -361,3 +376,4 @@ if __name__ == "__main__":
             output_dir = os.path.join(args.output_dir, input_folder)
             run_inference(model, cfg, output_dir, input_dir, args.targets_path, args.detection_path, args.template_dir, args.cad_dir)
             progress.update(input_tqdm, advance=1)
+            fuse_pem_json(output_dir)
