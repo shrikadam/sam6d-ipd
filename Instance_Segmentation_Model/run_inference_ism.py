@@ -32,6 +32,7 @@ from model.loss import Similarity
 from utils.inout import load_json, save_json_bop23
 from rich.progress import Progress
 import json
+import time
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 gc.collect()
@@ -75,7 +76,7 @@ def visualize(rgb, detections, save_path="tmp.png"):
     concat.paste(prediction, (img.shape[1], 0))
     return concat
 
-def visualize_all(rgb, im_id, obj_id,  detections, save_path="tmp.png"):
+def visualize_all(rgb, im_id, obj_id, detections, save_path="tmp.png"):
     img = rgb.copy()
     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
     img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
@@ -118,20 +119,21 @@ def batch_input_data(depth_path, cam_path, device):
     return batch
 
 def run_inference(model, test_targets_path, output_dir, input_dir, template_folder, cad_folder):
-    logging.info("Initializing template")
-    
     with open(test_targets_path, "r") as f:
         test_targets = json.load(f)
     scene_id = int(os.path.basename(input_dir))
     im_idx = [item['im_id'] for item in test_targets if item['scene_id']==scene_id]
     obj_idx = [item['obj_id'] for item in test_targets if item['scene_id']==scene_id]
-
     # Val set has only 5 images per scene, whereas test set has 84
     img_files = [f for f in os.listdir(os.path.join(input_dir, "rgb_cam1")) if f.endswith('.png')]
-    im_idx = im_idx[:len(img_files)]
-    obj_idx = obj_idx[:len(img_files)]
+    im_idx_arr = np.array(im_idx)
+    obj_idx_arr = np.array(obj_idx)
+    mask = im_idx_arr < len(img_files)
+    im_idx = im_idx_arr[mask].tolist()
+    obj_idx = obj_idx_arr[mask].tolist()
 
     for im_id, obj_id in zip(im_idx, obj_idx):
+        start = time.time()
         rgb_path = os.path.join(input_dir, "rgb_cam1", f"{im_id:06d}.png")
         depth_path = os.path.join(input_dir, "depth_cam1", f"{im_id:06d}.png")
         cam_path = next(iter(glob.glob(os.path.join(input_dir, "scene_camera_cam1.json"))), None)
@@ -212,19 +214,38 @@ def run_inference(model, test_targets_path, output_dir, input_dir, template_fold
 
         # final score
         final_score = (semantic_score + appe_scores + geometric_score*visible_ratio) / (1 + 1 + visible_ratio)
-
+        end = time.time()
+        print(f"Time taken to process the frame: {end-start} seconds")
         detections.add_attribute("scores", final_score)
         detections.add_attribute("object_ids", torch.full_like(final_score, obj_id))   
             
         detections.to_numpy()
-        save_path = f"{output_dir}/detection_ism_img{im_id}"
+        save_path = f"{output_dir}/detection_ism_img{im_id}_obj{obj_id}"
         detections.save_to_file(scene_id, im_id, 0, save_path, "Custom", return_results=False)
         detections = convert_npz_to_json(idx=0, list_npz_paths=[save_path+".npz"])
         save_json_bop23(save_path+".json", detections)
         # vis_img = visualize(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
         # vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
         visualize_all(rgb, im_id, obj_id, detections, f"{output_dir}")
-    
+
+def fuse_ism_json(output_dir):
+    combined_data = []
+    for file_name in os.listdir(output_dir):
+        # Only consider JSON files matching the pattern
+        if file_name.startswith('detection_ism_img') and file_name.endswith('.json'):
+            # Full path to the current JSON file
+            json_file_path = os.path.join(output_dir, file_name)
+            # Read and load the contents of the current JSON file
+            with open(json_file_path, 'r') as json_file:
+                data = json.load(json_file)
+                combined_data.extend(data)
+    output_path = os.path.join(output_dir, "detection_ism.json")
+    # Write fused data
+    with open(output_path, 'w') as f:
+        json.dump(combined_data, f, indent=2)
+
+    print(f"Fused ISM JSON files into {output_path}")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Instance Segmentation")
     parser.add_argument("--segmentor_model", default='sam', help="The segmentor model in ISM")
@@ -273,3 +294,4 @@ if __name__ == "__main__":
             output_dir = os.path.join(args.output_dir, input_folder)
             run_inference(model, args.targets_path, output_dir, input_dir, args.template_dir, args.cad_dir)
             progress.update(input_tqdm, advance=1)
+            fuse_ism_json(output_dir)
