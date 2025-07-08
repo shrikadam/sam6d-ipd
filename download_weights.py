@@ -41,6 +41,16 @@ download_file([
     "--no-check-certificate"
 ])
 
+# ViT MAE
+# maevit_checkpoint_dir = os.path.join(pose_model_dir, "checkpoints")
+# os.makedirs(maevit_checkpoint_dir, exist_ok=True)
+# download_file([
+#    "wget", "-P", maevit_checkpoint_dir,
+#    "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitl14/dinov2_vitl14_pretrain.pth",
+#    "--no-check-certificate"
+# ])
+
+
 # Pose Estimation Model
 pose_model_dir = "Pose_Estimation_Model"
 os.makedirs(os.path.join(pose_model_dir, "checkpoints"), exist_ok=True)
